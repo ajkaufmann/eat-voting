@@ -1,0 +1,113 @@
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<div class="container">
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="text/javascript">
+    var socket = io();
+    var votes = {};
+  </script>
+	<div>
+		<h1>Applicant Management</h1>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="form-group">
+          <div class="row">
+            <div class="col-md-8">
+              <label for="person">Name:</label>
+              <input type="text" class="form-control" id="person"/>
+            </div>
+            <div class="col-md-4 text-center">
+              <button type="button" class="btn btn-success btn-lg btn-block" onclick="addApplicant()"><span class="fa fa-user-plus"></span> Add Person</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6" id="applicant_table">
+        <table>
+          <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Yes</th>
+            <th>No</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+  <br/>
+	</div>
+  <script>
+    const headers = ["Rank", "First Name", "Last Name", "Number of Yes", "Actions"];
+    function addApplicant() {
+      var name = $("#person").val();
+      var _name = name.split(" ");
+      $.post("/applicant/create", {firstName: _name[0], lastName: _name[1]}, function(data) {
+        updateApplicantTable();
+      });
+    }
+    function clearTable(){
+      $("#applicant_table").html("");
+    }
+    function startVote(name, id) {
+      var urlString = "/admin?name=" + name + "&id=" + id;
+      window.location.replace(urlString);
+    }
+    function anchorApplicant(id) {
+      $.post("/applicant/update", {id: id, isAnchored: true}, function(data){
+        updateApplicantTable();
+      });
+    }
+    function buildTable(applicants){
+      var doc = document;
+      var fragment = doc.createDocumentFragment();
+      var tr = doc.createElement("tr");
+      for(i = 0; i < headers.length; i++){
+        var th = doc.createElement("th");
+        th.innerHTML = headers[i];
+        tr.appendChild(th);
+      }
+      fragment.appendChild(tr);
+      for (i = 0; i < applicants.length; i++) {
+          var applicant = applicants[i];
+          var tr = doc.createElement("tr");
+          var tdFirstName = doc.createElement("td");
+          tdFirstName.innerHTML = applicant.firstName;
+          var tdlastName = doc.createElement("td");
+          tdlastName.innerHTML = applicant.lastName;
+          var tdNumYes = doc.createElement("td");
+          tdNumYes.innerHTML = applicant.numYes;
+          var tdRank = doc.createElement("td");
+          tdRank.innerHTML = i+1;
+          tr.appendChild(tdRank);
+          tr.appendChild(tdFirstName);
+          tr.appendChild(tdlastName);
+          tr.appendChild(tdNumYes);
+          var tdButtons = doc.createElement("td");
+          if(applicant.isAnchored){
+            tr.style["background-color"] = "#C0C0C0";
+          } else {
+            var tdButtons = doc.createElement("td");
+            var anchorButton = doc.createElement("button");
+            anchorButton.className = "fa fa-anchor";
+            anchorButton.onclick = anchorApplicant.bind(this, applicant.id);
+            var voteButton = doc.createElement("button");
+            voteButton.className = "fa fa-balance-scale";
+            voteButton.onclick = startVote.bind(this, applicant.firstName + " " + applicant.lastName, applicant.id);
+            tdButtons.appendChild(anchorButton);
+            tdButtons.appendChild(voteButton);
+          }
+          tr.appendChild(tdButtons);
+          //does not trigger reflow
+          fragment.appendChild(tr);
+      }
+      var table = doc.createElement("table");
+      table.appendChild(fragment);
+      doc.getElementById("applicant_table").appendChild(table);
+    }
+    function updateApplicantTable(){
+      $.get("/applicants", {happy: true}, function(data){
+        clearTable();
+        buildTable(data.applicants);
+      });
+    }
+    updateApplicantTable();
+  </script>
+</div> <!-- /.container -->

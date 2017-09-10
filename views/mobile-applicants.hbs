@@ -1,0 +1,79 @@
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<div class="container">
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="text/javascript">
+    var socket = io();
+    var votes = {};
+  </script>
+	<div>
+		<h1>Applicants</h1>
+    <div class="row">
+      <div class="col-xs-12" id="applicant_table">
+        <table>
+          <caption><h1> Applicants </h1></caption>
+          <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Yes</th>
+            <th>No</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+	</div>
+  <script>
+    const headers = ["Rank", "First", "Last", "Yes"];
+    function addApplicant() {
+      var name = $("#person").val();
+      var _name = name.split(" ");
+      $.post("/applicant/create", {firstName: _name[0], lastName: _name[1]}, function(data) {
+        updateApplicantTable();
+      });
+    }
+    function clearTable(){
+      $("#applicant_table").html("");
+    }
+    function buildTable(applicants){
+      var doc = document;
+      var fragment = doc.createDocumentFragment();
+      var tr = doc.createElement("tr");
+      for(i = 0; i < headers.length; i++){
+        var th = doc.createElement("th");
+        th.innerHTML = headers[i];
+        tr.appendChild(th);
+      }
+      fragment.appendChild(tr);
+      for (i = 0; i < applicants.length; i++) {
+          var applicant = applicants[i];
+          var tr = doc.createElement("tr");
+          var tdFirstName = doc.createElement("td");
+          tdFirstName.innerHTML = applicant.firstName;
+          var tdlastName = doc.createElement("td");
+          tdlastName.innerHTML = applicant.lastName;
+          var tdNumYes = doc.createElement("td");
+          tdNumYes.innerHTML = applicant.numYes;
+          var tdRank = doc.createElement("td");
+          tdRank.innerHTML = i+1;
+          tr.appendChild(tdRank);
+          tr.appendChild(tdFirstName);
+          tr.appendChild(tdlastName);
+          tr.appendChild(tdNumYes);
+          if(applicant.isAnchored){
+            tr.style["background-color"] = "#C0C0C0";
+          }
+          //does not trigger reflow
+          fragment.appendChild(tr);
+      }
+      var table = doc.createElement("table");
+      table.appendChild(fragment);
+      doc.getElementById("applicant_table").appendChild(table);
+    }
+    function updateApplicantTable(){
+      $.get("/applicants", {happy: true}, function(data){
+        clearTable();
+        buildTable(data.applicants);
+      });
+    }
+    updateApplicantTable();
+  </script>
+</div> <!-- /.container -->

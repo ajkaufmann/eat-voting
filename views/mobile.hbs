@@ -1,0 +1,52 @@
+<!-- <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+<link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+<script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script> -->
+<script src="/socket.io/socket.io.js"></script>
+<script type="text/javascript">
+  var socket = io();
+  socket.on('start-vote', function(data) {
+    $("#vote-options").show();
+    $("#voteName").html(data.name);
+  });
+  socket.on('stop-vote', function(data) {
+    $("#vote-options").hide();
+    $("#voteName").html("No Vote Happening Now");
+  });
+  function vote(voteValue) {
+    var voteObj = {}
+    switch (voteValue) {
+      case 1:
+        voteObj.vote = "Yes"; // TODO: MAKE THIS A VALUE FROM BUTTON FOR GENERIC
+        break;
+      case 2:
+        voteObj.vote = "No"; // TODO: MAKE THIS A VALUE FROM BUTTON FOR GENERIC
+        break;
+      default:
+        voteObj.vote = "NOPE!";
+    }
+    voteObj.voter = socket.id;
+    socket.emit("submit-vote", voteObj);
+    $("#vote-options").hide();
+    $("#voteName").html("Thank you for your vote.");
+  }
+
+</script>
+<div class="container">
+	<div>
+		<h1 class="text-center" id="voteName"> No Vote Happening Now </h1>
+    <div id="vote-options" style="display:none;">
+      <div class="row">
+        <div class="col-xs-12">
+          <button type="button" class="btn btn-success btn-lg btn-block" onclick="vote(1)">Yes</button>
+        </div>
+      </div>
+    <br/>
+    <br/>
+      <div class="row">
+        <div class="col-md-12">
+          <button type="button" class="btn btn-danger btn-lg btn-block" onclick="vote(2)">No</button>
+        </div>
+      </div>    
+    </div>
+	</div>
+</div><!-- /.container -->

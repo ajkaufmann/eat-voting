@@ -1,0 +1,167 @@
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<div class="container">
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="text/javascript">
+    var socket = io();
+    socket.on("vote-recieved", function(voteObject){
+      console.log(voteObject.vote);
+      updateData(voteObject);
+    });
+    $(document).ready(function(){
+      var passedName = "{{name}}";
+      $("#person").val(passedName);
+      $("#stopBtn").hide();
+      $("#saveBtn").hide();
+      $("#clearBtn").hide();
+    });
+  </script>
+	<div>
+		<h1>Voting Admin Site</h1>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="form-group">
+          <label for="person">Name:</label>
+          <input type="text" class="form-control" id="person">
+        </div>
+      </div>
+    </div>
+  </br>
+    <div class="row">
+      <div class="col-md-4">
+        <button type="button" class="btn btn-success btn-lg btn-block" onclick="startVote()" id="startBtn"> <span class="fa fa-play"></span> Start Vote</button>
+      </div>
+      <div class="col-md-4">
+        <button type="button" class="btn btn-danger btn-lg btn-block" onclick="stopVote()" id="stopBtn"> <span class="fa fa-stop"></span> Stop Vote</button>
+      </div>
+      <div class="col-md-4">
+        <div class="row">
+          <div class="col-md-6">
+            <button type="button" class="btn btn-warning btn-lg btn-block" onclick="saveVote()" id="saveBtn"> <span class="fa fa-save"></span> Save</button>
+          </div>
+          <div class="col-md-6">
+            <button type="button" class="btn btn-default btn-lg btn-block" onclick="clearScreen()" id="clearBtn"> <span class="fa fa-caret-left"></span> Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+	</div>
+  <div id="highcharts-container" style="display:none;">  
+  </div>
+  <script>
+    var chart = {};
+    var name;
+    function startVote() {
+      name = $("#person").val();
+      var charTitle = "Votes for " +  name;
+      chart = Highcharts.chart('highcharts-container', {
+        chart: {
+            type: 'column'
+        },
+        colors: [
+          "#5cb85c",
+          "#d9534f"
+        ],
+        plotOptions: {
+          column: {
+            colorByPoint: true,
+            
+            crisp: true,
+            pointInterval: 1
+          }
+        },
+        title: {
+            text: charTitle
+        },
+        xAxis: {
+            categories: [
+                'Yes',
+                'No'
+            ],
+            crosshair: true
+        },
+        yAxis: {
+            min: 0,
+            title: {
+                text: 'Number of Votes'
+            }
+        },
+        tooltip: {
+            headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+            pointFormat: '<tr><td style="color:{point.color};padding:0">{point.y} Vote(s)</td>',
+            footerFormat: '</table>',
+            shared: true,
+            useHTML: true
+        },
+        plotOptions: {
+            column: {
+                pointPadding: 0.2,
+                borderWidth: 0
+            }
+        },
+        series: [{
+            name: name,
+            type: 'column',
+            data: [0, 0],
+            colorByPoint: true
+        }]
+      });
+      chart.series[0].update({name: charTitle}, false);
+      chart.redraw();
+      socket.emit('start-vote', {name: name});
+      $("#startBtn").hide();
+      $("#stopBtn").show();
+    }
+    function updateData(voteObject) {
+      $("#highcharts-container").show();
+      var obj = {};
+      if (parseInt(voteObject) == 1){
+        obj.vote = "Yes";
+      }
+      obj = voteObject;
+      var seriesData = [];
+      var data = chart.series[0].data;
+      console.log(data[0]);
+      if (String(obj.vote) == String('Yes')) {
+        data[0].y = parseInt(data[0].y) + 1;
+      } else {
+        data[1].y = parseInt(data[1].y) + 1;
+      }
+      console.log(data);
+      chart.series[0].setData(data, true);
+    }
+    function stopVote() {
+      socket.emit('stop-vote', {name: name});
+      var saveId = !isNaN(parseInt({{id}})) ? parseInt({{id}}) : -1;
+      var spaceCount = (name.split(" ").length - 1);
+      if (saveId != -1 || spaceCount == 1) {
+        $("#saveBtn").show();
+      }
+      $("#stopBtn").hide();
+      $("#clearBtn").show();
+    }
+    function saveVote() {
+      var data = chart.series[0].data
+      var saveId = !isNaN(parseInt({{id}})) ? parseInt({{id}}) : -1;
+      $.post("/applicant/update", {id: saveId, numYes: data[0].y, numNo: data[1].y, name: name}, function(data){
+        clearScreen();
+        if(data.status != 400){
+          alert("Voting for " + name + " saved!");
+          $("#clearBtn").hide();
+          $("#saveBtn").hide();
+          $("#startBtn").show();
+        }
+      });
+    }
+    function clearScreen() {
+      window.location.replace("/admin");
+      $("#person").val("");
+      $("#highcharts-container").hide();
+      $("#clearBtn").hide();
+      $("#saveBtn").hide();
+      $("#startBtn").show();
+    }
+  </script>
+  <script>
+  </script>
+</div><!-- /.container -->
